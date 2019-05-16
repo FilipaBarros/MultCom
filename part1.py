@@ -51,14 +51,20 @@ bottlenecks_means = [];
 delays = []
 sock.settimeout(2);
 n = 0;
+
+timeouts = []
+
+
+
 for j in range (r1,r2+1,pace):
     packet = "a".ljust(j);
-    packet_size = len(packet);
+    packet_size = len(packet)*8 + 64; #packet len to bits + UDP overhead
     bottleneck_sum = 0;
     delay_0 = 0;
+    time_out = 0;
     i = 0;
     while i <= 200:
-        print(i);
+        #print(i);
         sock.sendto(packet.encode(),(address,port));
         sock.sendto(packet.encode(),(address,port));
         data = None;
@@ -68,11 +74,13 @@ for j in range (r1,r2+1,pace):
             data = sock.recv(j);
         except socket.timeout:
             read1 = False
+            time_out = time_out + 1;
         ts1 = int(time.time_ns());
         try:
             data = sock.recv(j);
         except socket.timeout:
             read2 = False
+            time_out = time_out + 1;
         ts2 = int(time.time_ns());
         
         if(i >= 0 and (not read1 or not read2)):
@@ -84,12 +92,14 @@ for j in range (r1,r2+1,pace):
             delay_0 = delay_0 + 1;
      
         else: 
+            delay = delay*10**(-9);
             bottleneck = packet_size/delay;
             bottlenecks[n].append(bottleneck);
             bottleneck_sum = bottleneck_sum + bottleneck;
         i = i + 1;
     bottlenecks_means.append(bottleneck_sum/201);
     delays.append(delay);
+    timeouts.append(time_out);
     n = n + 1;
     #print(n);
     #print(j);
@@ -106,7 +116,7 @@ for i in range(len(bottlenecks)):
     y = bottlenecks[i];
     ax = fig.add_subplot(6, 1, i + 1)
     ax.plot(x,y, 'o', linewidth=2, markersize=2, label=l);
-    ax.set_ylabel('Bottleneck')
+    ax.set_ylabel('Bottleneck(bits/s)')
     ax.set_xlabel('N')
     ax.legend()
     #print (i);
@@ -118,9 +128,23 @@ fig = plt.figure(figsize = (10,10));
 ax = fig.add_subplot(1, 1, 1)
 l = "Mean Bottleneck link per packet size"
 ax.plot(x,y, linewidth=4, markersize=6, label=l);
-ax.set_ylabel('Mean bottleneck')
-ax.set_xlabel('Packet Size')
+ax.set_ylabel('Mean bottleneck(bits/s)')
+ax.set_xlabel('Packet Size(bytes)')
 ax.legend()
+ 
+#plot the timeouts for 2s
+y = timeouts;
+fig = plt.figure(figsize = (10,10));
+ax = fig.add_subplot(1, 1, 1)
+l = "Timeouts per packet size"
+ax.plot(x,y, 'o', linewidth=4, markersize=6, label=l);
+ax.set_ylabel('N')
+ax.set_xlabel('Packet Size')
+ax.grid()
+ax.legend()
+
+    
+
  
     
 
