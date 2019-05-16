@@ -47,17 +47,21 @@ r2 = 1500;
 pace = int((r2 - r1)/5)
 
 bottlenecks = [[],[],[],[],[],[]];
+bottlenecks_means = [];
+delays = []
 
 n = 0;
 for j in range (r1,r2+1,pace):
     packet = "a".ljust(j);
     packet_size = len(packet);
     bottleneck_sum = 0;
+    delay_0 = 0;
     i = 0;
     while i <= 200:
         print(i);
         sock.sendto(packet.encode(),(address,port));
         sock.sendto(packet.encode(),(address,port));
+        data = None;
         data = sock.recv(j);
         ts1 = int(time.time_ns());
         data = sock.recv(j);
@@ -67,18 +71,21 @@ for j in range (r1,r2+1,pace):
             i = i - 1;
         else: 
             bottleneck = packet_size/delay;
-            bottlenecks[n].append(bottleneck)
+            bottlenecks[n].append(bottleneck);
+            bottleneck_sum = bottleneck_sum + bottleneck;
         i = i + 1;
+    bottlenecks_means.append(bottleneck_sum/201);
     n = n + 1;
-    print(n);
-    print(j);
+    #print(n);
+    #print(j);
     
 
 #plot the bottlenecks for each packet size
 x = list(range(0,201))
-fig = plt.figure(figsize=(10,10))
+fig = plt.figure(figsize=(12,30));
+#p = [];
 for i in range(len(bottlenecks)):
-    print (len(bottlenecks[i]));
+    #print (len(bottlenecks[i]));
     p = r1 + i*pace;    
     l = 'bottlenecks from size packet ' + str(p);
     y = bottlenecks[i];
@@ -87,9 +94,19 @@ for i in range(len(bottlenecks)):
     ax.set_ylabel('Bottleneck')
     ax.set_xlabel('N')
     ax.legend()
-    print (i);
-
-print(pace)
-
+    #print (i);
+        
+#plot the bottleneck mean for each packet size
+x = list(range(r1,r2+1,pace));
+y = bottlenecks_means;
+fig = plt.figure(figsize = (10,10));
+ax = fig.add_subplot(1, 1, 1)
+l = "Mean Bottleneck link per packet size"
+ax.plot(x,y, 'o', linewidth=2, markersize=2, label=l);
+ax.set_ylabel('Mean bottleneck')
+ax.set_xlabel('Packet Size')
+ax.legend()
+ 
+    
 
 
