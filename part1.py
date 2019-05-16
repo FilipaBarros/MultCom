@@ -49,7 +49,7 @@ pace = int((r2 - r1)/5)
 bottlenecks = [[],[],[],[],[],[]];
 bottlenecks_means = [];
 delays = []
-
+sock.settimeout(2);
 n = 0;
 for j in range (r1,r2+1,pace):
     packet = "a".ljust(j);
@@ -62,19 +62,34 @@ for j in range (r1,r2+1,pace):
         sock.sendto(packet.encode(),(address,port));
         sock.sendto(packet.encode(),(address,port));
         data = None;
-        data = sock.recv(j);
+        read1 = True
+        read2 = True
+        try:
+            data = sock.recv(j);
+        except socket.timeout:
+            read1 = False
         ts1 = int(time.time_ns());
-        data = sock.recv(j);
+        try:
+            data = sock.recv(j);
+        except socket.timeout:
+            read2 = False
         ts2 = int(time.time_ns());
-        delay= ts2 - ts1;
+        
+        if(i >= 0 and (not read1 or not read2)):
+            continue
+
+        delay= abs(ts2 - ts1);
         if (delay == 0):
             i = i - 1;
+            delay_0 = delay_0 + 1;
+     
         else: 
             bottleneck = packet_size/delay;
             bottlenecks[n].append(bottleneck);
             bottleneck_sum = bottleneck_sum + bottleneck;
         i = i + 1;
     bottlenecks_means.append(bottleneck_sum/201);
+    delays.append(delay);
     n = n + 1;
     #print(n);
     #print(j);
@@ -102,7 +117,7 @@ y = bottlenecks_means;
 fig = plt.figure(figsize = (10,10));
 ax = fig.add_subplot(1, 1, 1)
 l = "Mean Bottleneck link per packet size"
-ax.plot(x,y, 'o', linewidth=2, markersize=2, label=l);
+ax.plot(x,y, linewidth=4, markersize=6, label=l);
 ax.set_ylabel('Mean bottleneck')
 ax.set_xlabel('Packet Size')
 ax.legend()
